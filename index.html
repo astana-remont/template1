@@ -42,39 +42,10 @@
     .service-card-title-wrap:hover .service-card-line { width: 100% !important; transition: width 0.4s ease; }
     .service-card-line { transition: width 0.4s ease; }
 
-    /* ===== SCROLL ANIMATIONS ===== */
-    .anim-fade-up {
-      opacity: 0;
-      transform: translateY(52px);
-      transition: opacity 0.72s cubic-bezier(0.22, 1, 0.36, 1), transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .anim-fade-left {
-      opacity: 0;
-      transform: translateX(-52px);
-      transition: opacity 0.72s cubic-bezier(0.22, 1, 0.36, 1), transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .anim-fade-right {
-      opacity: 0;
-      transform: translateX(52px);
-      transition: opacity 0.72s cubic-bezier(0.22, 1, 0.36, 1), transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .anim-fade-in {
-      opacity: 0;
-      transition: opacity 1s ease;
-    }
-    .anim-scale-up {
-      opacity: 0;
-      transform: scale(0.87);
-      transition: opacity 0.65s ease, transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .anim-fade-up.in-view,
-    .anim-fade-left.in-view,
-    .anim-fade-right.in-view,
-    .anim-fade-in.in-view,
-    .anim-scale-up.in-view {
-      opacity: 1;
-      transform: none;
-    }
+    /* Hero elements hidden until GSAP initialises (prevents FOUC) */
+    .hero-title-text, .hero-pg,
+    .hero-top-content > .primary-button,
+    .hero-rating-area, .hero-image-wrapper { opacity: 0; }
 
     /* Rotating arc badge */
     @keyframes spin-badge { to { transform: rotate(360deg); } }
@@ -1537,13 +1508,6 @@
     ===================================================== */
     html, body { overflow-x: clip; }
 
-    /* Tighten animation travel so transforms don't spill off-screen */
-    @media (max-width: 991px) {
-      .anim-fade-left  { transform: translateX(-20px); }
-      .anim-fade-right { transform: translateX(20px); }
-      .anim-fade-up    { transform: translateY(24px); }
-    }
-
     /* =====================================================
        MOBILE NAVIGATION — under 992px
     ===================================================== */
@@ -1710,127 +1674,276 @@
     }
   </style>
 
-  <!-- ===== ANIMATION ENGINE ===== -->
+  <!-- ===== GSAP + PLUGINS ===== -->
+  <script src="https://cdn.prod.website-files.com/gsap/3.15.0/gsap.min.js"></script>
+  <script src="https://cdn.prod.website-files.com/gsap/3.15.0/SplitText.min.js"></script>
+  <script src="https://cdn.prod.website-files.com/gsap/3.15.0/ScrollTrigger.min.js"></script>
+
   <script>
   (function () {
-    function prep(el, cls, delay) {
-      if (!el) return;
-      el.classList.add(cls);
-      if (delay) el.style.transitionDelay = delay + 'ms';
+    if (typeof gsap === 'undefined') return;
+    gsap.registerPlugin(ScrollTrigger, SplitText);
+
+    var reduced  = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var isMobile = window.innerWidth < 768;
+
+    /* ─── helper: ScrollTrigger config ─── */
+    function st(trigger, start) {
+      return { trigger: trigger, start: start || 'top 82%', once: true };
     }
-    function stagger(list, cls, gap, start) {
-      list.forEach(function (el, i) {
-        el.classList.add(cls);
-        el.style.transitionDelay = ((start || 0) + i * gap) + 'ms';
+
+    /* ─── helper: clip-path image reveal (left-to-right wipe) ─── */
+    function wipeIn(sel, trigger, dir) {
+      var from = (dir === 'up')
+        ? 'inset(100% 0% 0% 0%)'   /* reveal bottom→top  */
+        : 'inset(0% 100% 0% 0%)';  /* reveal left→right  */
+      document.querySelectorAll(sel).forEach(function (el) {
+        gsap.fromTo(el,
+          { clipPath: from },
+          { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.1, ease: 'power3.inOut',
+            scrollTrigger: st(el, 'top 88%') }
+        );
       });
     }
 
-    /* ---- tag every element with its animation class ---- */
+    /* ======================================================
+       HERO — on-load entrance animations
+    ====================================================== */
 
-    // HERO — entrance on load
-    prep(document.querySelector('.hero-title-text'),                     'anim-fade-up',    0);
-    prep(document.querySelector('.hero-pg'),                             'anim-fade-up',  140);
-    prep(document.querySelector('.hero-top-content > .primary-button'),  'anim-fade-up',  260);
-    prep(document.querySelector('.hero-rating-area'),                    'anim-fade-up',  380);
-    prep(document.querySelector('.hero-image-wrapper'),                  'anim-fade-in',   80);
-
-    // ABOUT
-    prep(document.querySelector('.about-section-title-wrapper'),                   'anim-fade-up',    0);
-    prep(document.querySelector('.about-image-v1'),                                'anim-fade-left', 120);
-    prep(document.querySelector('.about-text-content'),                            'anim-fade-up',  200);
-    stagger(document.querySelectorAll('.about-counter-card'),                      'anim-scale-up', 140, 250);
-    prep(document.querySelector('.about-section-left-content .border-button'),     'anim-fade-up',  380);
-    prep(document.querySelector('.right-image-list'),                              'anim-fade-right',160);
-
-    // SERVICES
-    prep(document.querySelector('.service-top-content'),    'anim-fade-up',   0);
-    prep(document.querySelector('.service-cta-area'),       'anim-fade-up',  60);
-    ['.collection-list-wrapper', '.collection-list-wrapper-02',
-     '.collection-list-wrapper-03', '.collection-list-wrapper-04'
-    ].forEach(function (sel, i) { prep(document.querySelector(sel), 'anim-fade-left', i * 110); });
-    prep(document.querySelector('.service-image-wrapper'),  'anim-scale-up', 80);
-
-    // WORK PROCESS
-    stagger(document.querySelectorAll('.work-card'), 'anim-fade-up', 160, 0);
-
-    // WHY CHOOSE
-    prep(document.querySelector('.why-choose-section-title-pg'),              'anim-fade-left',  0);
-    stagger(document.querySelectorAll('.why-choose-check-feature'),           'anim-fade-left', 110, 120);
-    prep(document.querySelector('.arc-wrapper'),                              'anim-scale-up', 260);
-    prep(document.querySelector('.why-choose-image-01'),                      'anim-fade-right',  80);
-    prep(document.querySelector('.why-choose-image-02'),                      'anim-fade-right', 240);
-
-    // AWARDS
-    prep(document.querySelector('.awards-content-wrapper .all-section-title-wrapper'), 'anim-fade-up', 0);
-    stagger(document.querySelectorAll('.awards-card'), 'anim-fade-up', 90, 60);
-
-    // FULL-WIDTH IMAGE
-    prep(document.querySelector('.image-section img'), 'anim-scale-up', 0);
-
-    // BEFORE / AFTER
-    prep(document.querySelector('.after-befote-left-content'),        'anim-fade-left',  0);
-    prep(document.querySelector('.after-before-image-tab-list'),      'anim-fade-up',   80);
-    stagger(document.querySelectorAll('.after-before-image-wrapper'), 'anim-fade-up',  120, 160);
-
-    // TESTIMONIALS
-    stagger(document.querySelectorAll('.testimonials-card'), 'anim-fade-up', 90, 0);
-
-    // BENEFITS
-    prep(document.querySelector('.benefits-befote-left-content'), 'anim-fade-left',   0);
-    prep(document.querySelector('.benefits-image-wrapper'),        'anim-fade-right', 140);
-
-    // FAQ
-    prep(document.querySelector('.faq-section .all-section-title-wrapper'), 'anim-fade-up', 0);
-    stagger(document.querySelectorAll('.faq-item'), 'anim-fade-up', 80, 80);
-
-    // BLOG
-    prep(document.querySelector('.blog-left-content'), 'anim-fade-left', 0);
-    stagger(document.querySelectorAll('.blog-collection .collection-item'), 'anim-fade-up', 150, 60);
-
-    // FOOTER
-    prep(document.querySelector('.footer-cta'),            'anim-fade-up',    0);
-    prep(document.querySelector('.footer-left-content'),   'anim-fade-left',  60);
-    prep(document.querySelector('.footer-right-content'),  'anim-fade-right', 60);
-    prep(document.querySelector('.copyright-area'),        'anim-fade-up',    80);
-
-    /* ---- IntersectionObserver ---- */
-    if (!window.IntersectionObserver) {
-      document.querySelectorAll('.anim-fade-up,.anim-fade-left,.anim-fade-right,.anim-fade-in,.anim-scale-up')
-        .forEach(function (el) { el.classList.add('in-view'); });
-      return;
+    /* Title: SplitText word-by-word slide up */
+    var heroTitle = document.querySelector('.hero-title-text');
+    if (heroTitle) {
+      if (!reduced) {
+        var titleSplit = new SplitText(heroTitle, { type: 'words' });
+        gsap.from(titleSplit.words, {
+          opacity: 0, y: 80,
+          duration: 0.85, stagger: 0.08, ease: 'power4.out', delay: 0.15,
+          onComplete: function () { titleSplit.revert(); }
+        });
+      } else {
+        gsap.from(heroTitle, { opacity: 0, duration: 0.6, delay: 0.15 });
+      }
     }
 
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) { entry.target.classList.add('in-view'); io.unobserve(entry.target); }
+    gsap.from('.hero-pg',                            { opacity: 0, y: 28, duration: 0.75, ease: 'power2.out', delay: 0.65 });
+    gsap.from('.hero-top-content > .primary-button', { opacity: 0, y: 22, duration: 0.7,  ease: 'power2.out', delay: 0.85 });
+    gsap.from('.hero-rating-area',                   { opacity: 0, y: 18, duration: 0.65, ease: 'power2.out', delay: 1.05 });
+    gsap.from('.hero-image-wrapper',                 { opacity: 0, scale: 1.05, duration: 1.5, ease: 'power2.out', delay: 0.1 });
+
+    /* Hero parallax (desktop only for smoothness) */
+    if (!isMobile) {
+      gsap.to('.hero-image', {
+        yPercent: -18, ease: 'none',
+        scrollTrigger: { trigger: '.hero-section', start: 'top top', end: 'bottom top', scrub: true }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    }
 
-    document.querySelectorAll('.anim-fade-up,.anim-fade-left,.anim-fade-right,.anim-fade-in,.anim-scale-up')
-      .forEach(function (el) { io.observe(el); });
+    /* ======================================================
+       SECTION TAGS — bounce in
+    ====================================================== */
+    document.querySelectorAll('.section-tag').forEach(function (el) {
+      gsap.from(el, {
+        opacity: 0, scale: 0.55, duration: 0.55, ease: 'back.out(2.8)',
+        scrollTrigger: st(el, 'top 92%')
+      });
+    });
 
-    /* ---- Counter animation ---- */
-    function runCounter(el) {
+    /* ======================================================
+       SECTION TITLES — SplitText line reveal
+    ====================================================== */
+    document.querySelectorAll('.all-section-title').forEach(function (el) {
+      if (reduced) { gsap.from(el, { opacity: 0, duration: 0.5, scrollTrigger: st(el) }); return; }
+      var s = new SplitText(el, { type: 'lines', linesClass: 'gsap-line' });
+      /* wrap each line in a clip so overflow is hidden */
+      s.lines.forEach(function (ln) {
+        var w = document.createElement('div');
+        w.style.overflow = 'hidden';
+        ln.parentNode.insertBefore(w, ln);
+        w.appendChild(ln);
+      });
+      gsap.from(s.lines, {
+        opacity: 0, y: 48, duration: 0.8, stagger: 0.1, ease: 'power3.out',
+        scrollTrigger: st(el),
+        onComplete: function () { s.revert(); }
+      });
+    });
+
+    /* ======================================================
+       ABOUT
+    ====================================================== */
+    wipeIn('.about-image-v1', '.about-section', 'left');
+
+    gsap.from('.about-text-content', {
+      opacity: 0, x: 50, duration: 0.9, ease: 'power2.out',
+      scrollTrigger: st('.about-section', 'top 75%')
+    });
+    gsap.from('.about-counter-card', {
+      opacity: 0, y: 36, scale: 0.88, stagger: 0.18, duration: 0.75, ease: 'back.out(1.6)',
+      scrollTrigger: st('.counter-area', 'top 82%')
+    });
+    gsap.from('.about-section-left-content .border-button', {
+      opacity: 0, y: 20, duration: 0.6, ease: 'power2.out',
+      scrollTrigger: st('.about-section-left-content', 'top 75%')
+    });
+
+    /* Counting numbers */
+    document.querySelectorAll('.counter-text').forEach(function (el) {
       var raw = el.textContent.trim();
-      var isK   = /k/i.test(raw);
-      var plus  = raw.includes('+');
+      var isK = /k/i.test(raw), hasPlus = raw.includes('+');
       var target = parseInt(raw.replace(/\D/g, ''), 10);
-      var dur = 1800, t0 = null;
-      (function tick(ts) {
-        if (!t0) t0 = ts;
-        var p   = Math.min((ts - t0) / dur, 1);
-        var val = Math.round((1 - Math.pow(1 - p, 3)) * target);
-        el.textContent = val + (isK ? 'k' : '') + (plus ? '+' : '');
-        if (p < 1) requestAnimationFrame(tick);
-      })(performance.now());
-    }
+      var proxy = { v: 0 };
+      gsap.to(proxy, {
+        v: target, duration: 2.2, ease: 'power2.out',
+        scrollTrigger: st(el, 'top 80%'),
+        onUpdate: function () {
+          el.textContent = Math.round(proxy.v) + (isK ? 'k' : '') + (hasPlus ? '+' : '');
+        }
+      });
+    });
 
-    var cio = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting) { runCounter(e.target); cio.unobserve(e.target); } });
-    }, { threshold: 0.6 });
-    document.querySelectorAll('.counter-text').forEach(function (el) { cio.observe(el); });
+    /* ======================================================
+       SERVICES
+    ====================================================== */
+    gsap.from('.service-top-content', {
+      opacity: 0, y: 40, duration: 0.8, ease: 'power2.out',
+      scrollTrigger: st('.service-section', 'top 80%')
+    });
+    gsap.from(
+      ['.collection-list-wrapper', '.collection-list-wrapper-02',
+       '.collection-list-wrapper-03', '.collection-list-wrapper-04'],
+      { opacity: 0, x: -45, stagger: 0.13, duration: 0.72, ease: 'power2.out',
+        scrollTrigger: st('.service-tab-wrapper', 'top 80%') }
+    );
+    wipeIn('.service-image-wrapper', '.service-section', 'left');
 
-    /* ---- Navbar scroll ---- */
+    /* ======================================================
+       WORK PROCESS
+    ====================================================== */
+    gsap.from('.work-card', {
+      opacity: 0, y: 65, stagger: 0.14, duration: 0.82, ease: 'power2.out',
+      scrollTrigger: st('.work-section', 'top 78%')
+    });
+
+    /* ======================================================
+       WHY CHOOSE
+    ====================================================== */
+    gsap.from('.why-choose-section-title-pg', {
+      opacity: 0, x: -55, duration: 0.85, ease: 'power2.out',
+      scrollTrigger: st('.why-choose-section', 'top 78%')
+    });
+    gsap.from('.why-choose-check-feature', {
+      opacity: 0, x: -30, stagger: 0.1, duration: 0.65, ease: 'power2.out',
+      scrollTrigger: st('.why-choose-section', 'top 72%')
+    });
+    wipeIn('.why-choose-image-01', '.why-choose-section', 'up');
+    gsap.from('.arc-wrapper', {
+      opacity: 0, scale: 0.7, duration: 0.6, ease: 'back.out(1.8)',
+      scrollTrigger: st('.why-choose-section', 'top 68%')
+    });
+
+    /* ======================================================
+       AWARDS
+    ====================================================== */
+    gsap.from('.awards-card', {
+      opacity: 0, x: -42, stagger: 0.08, duration: 0.62, ease: 'power2.out',
+      scrollTrigger: st('.awards-section', 'top 78%')
+    });
+
+    /* ======================================================
+       FULL-WIDTH IMAGE
+    ====================================================== */
+    wipeIn('.image-big', '.image-section', 'left');
+
+    /* ======================================================
+       BEFORE / AFTER
+    ====================================================== */
+    gsap.from('.after-befote-left-content', {
+      opacity: 0, x: -60, duration: 0.9, ease: 'power2.out',
+      scrollTrigger: st('.after-before-section', 'top 78%')
+    });
+    gsap.from('.after-before-image-tab-list', {
+      opacity: 0, y: 28, duration: 0.7, ease: 'power2.out',
+      scrollTrigger: st('.after-before-section', 'top 72%')
+    });
+    gsap.from('.after-before-image-wrapper', {
+      opacity: 0, y: 44, scale: 0.93, stagger: 0.12, duration: 0.8, ease: 'power2.out',
+      scrollTrigger: st('.after-before-section', 'top 68%')
+    });
+
+    /* ======================================================
+       TESTIMONIALS
+    ====================================================== */
+    ScrollTrigger.batch('.testimonials-card', {
+      onEnter: function (els) {
+        gsap.from(els, {
+          opacity: 0, y: 42, scale: 0.94,
+          stagger: { each: 0.12 }, duration: 0.75, ease: 'power2.out'
+        });
+      },
+      start: 'top 85%', once: true
+    });
+
+    /* ======================================================
+       BENEFITS
+    ====================================================== */
+    gsap.from('.benefits-befote-left-content', {
+      opacity: 0, x: -60, duration: 0.9, ease: 'power2.out',
+      scrollTrigger: st('.benefits-section', 'top 78%')
+    });
+    wipeIn('.benefits-image-03', '.benefits-section', 'left');
+
+    /* ======================================================
+       FAQ
+    ====================================================== */
+    gsap.from('.faq-section .all-section-title-wrapper', {
+      opacity: 0, y: 32, duration: 0.75, ease: 'power2.out',
+      scrollTrigger: st('.faq-section', 'top 80%')
+    });
+    gsap.from('.faq-item', {
+      opacity: 0, y: 30, stagger: 0.08, duration: 0.62, ease: 'power2.out',
+      scrollTrigger: st('.faq-section', 'top 75%')
+    });
+
+    /* ======================================================
+       BLOG
+    ====================================================== */
+    gsap.from('.blog-left-content', {
+      opacity: 0, x: -55, duration: 0.9, ease: 'power2.out',
+      scrollTrigger: st('.blog-section', 'top 78%')
+    });
+    ScrollTrigger.batch('.blog-collection .collection-item', {
+      onEnter: function (els) {
+        gsap.from(els, {
+          opacity: 0, y: 52, scale: 0.95,
+          stagger: { each: 0.15 }, duration: 0.82, ease: 'power2.out'
+        });
+      },
+      start: 'top 85%', once: true
+    });
+
+    /* ======================================================
+       FOOTER
+    ====================================================== */
+    gsap.from('.footer-cta', {
+      opacity: 0, scale: 0.93, duration: 0.9, ease: 'power2.out',
+      scrollTrigger: st('.footer-section', 'top 88%')
+    });
+    gsap.from('.footer-left-content', {
+      opacity: 0, x: -45, duration: 0.8, ease: 'power2.out',
+      scrollTrigger: st('.footer-top-content', 'top 82%')
+    });
+    gsap.from('.footer-right-content', {
+      opacity: 0, x: 45, duration: 0.8, ease: 'power2.out',
+      scrollTrigger: st('.footer-top-content', 'top 82%')
+    });
+    gsap.from('.copyright-area', {
+      opacity: 0, y: 20, duration: 0.6, ease: 'power2.out',
+      scrollTrigger: st('.copyright-area', 'top 90%')
+    });
+
+    /* ======================================================
+       NAVBAR SCROLL
+    ====================================================== */
     var navbar = document.querySelector('.navbar-section');
     if (navbar) {
       window.addEventListener('scroll', function () {
