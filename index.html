@@ -108,8 +108,23 @@
     /* ── Service card line grows to full width on hover (reinforcement) ── */
     .service-card-title-wrap:hover .service-card-line { width: 100% !important; }
 
-    /* ── Benefits: secondary images visible (Webflow .v2 variant may hide them) ── */
-    .benefits-right-image { display: flex !important; flex-direction: column; gap: 10px; }
+    /* ── Benefits: force all image variants visible ── */
+    .benefits-image-wrapper,
+    .benefits-image-wrapper.v1 {
+      display: flex !important; flex-direction: row !important;
+      gap: 12px !important; align-items: stretch !important;
+    }
+    .benefits-image-03, .benefits-image-03.v1 { display: block !important; flex: 1 !important; }
+    .benefits-right-image, .benefits-right-image.v2 {
+      display: flex !important; flex-direction: column !important;
+      gap: 10px !important; flex: 1 !important;
+    }
+    .benefits-image-01, .benefits-image-01.v1,
+    .benefits-image-02, .benefits-image-02.v1,
+    .benefits-image.v1 { display: block !important; width: 100% !important; height: auto !important; }
+
+    /* ── Magnetic button — GPU layer hint ── */
+    .primary-button, .border-button { will-change: transform; }
 
     /* ── FAQ: two-column layout ── */
     .faq-layout {
@@ -278,13 +293,15 @@
           <!-- Mobile Hamburger -->
           <div class="nav-trigger w-nav-button" role="button" tabindex="0" aria-label="menu" aria-haspopup="menu" aria-expanded="false">
             <div class="trigger-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 530" width="30" height="22" style="display:block;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 530" width="30" height="22" style="display:block;" class="burger-svg">
                 <g>
                   <path stroke-linecap="round" stroke-linejoin="round" fill-opacity="0" stroke="rgb(255,255,255)" stroke-opacity="1" stroke-width="55" d="M-327,0 C-327,0 327,0 327,0" transform="translate(370,265)"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" fill-opacity="0" stroke="rgb(255,255,255)" stroke-opacity="1" stroke-width="55" d="M-327,222.5 C-327,222.5 327,222.5 327,222.5" transform="translate(370,265)"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" fill-opacity="0" stroke="rgb(255,255,255)" stroke-opacity="1" stroke-width="55" d="M-327,-222.5 C-327,-222.5 327,-222.5 327,-222.5" transform="translate(370,265)"></path>
                 </g>
               </svg>
+              <!-- Explicit close icon — more reliable than ::after -->
+              <span class="nav-x-icon" aria-hidden="true">&#x2715;</span>
             </div>
           </div>
 
@@ -1570,8 +1587,24 @@
       });
     });
 
-    /* Mobile nav is handled in the GSAP block below for smooth animation.
-       Fallback for when GSAP is not available: */
+    /* ── iOS-safe scroll lock helpers ── */
+    var _scrollY = 0;
+    function _lockScroll() {
+      _scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top      = '-' + _scrollY + 'px';
+      document.body.style.width    = '100%';
+      document.body.style.overflow = 'hidden';
+    }
+    function _unlockScroll() {
+      document.body.style.position = '';
+      document.body.style.top      = '';
+      document.body.style.width    = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, _scrollY);
+    }
+
+    /* Fallback nav toggle (when GSAP not yet loaded) */
     if (typeof gsap === 'undefined') {
       var _nt = document.querySelector('.nav-trigger');
       var _nm = document.querySelector('.menu-wrapper');
@@ -1580,7 +1613,7 @@
           var open = _nm.classList.toggle('mobile-open');
           _nt.classList.toggle('is-active', open);
           _nt.setAttribute('aria-expanded', open);
-          document.body.style.overflow = open ? 'hidden' : '';
+          open ? _lockScroll() : _unlockScroll();
         });
       }
     }
@@ -1658,16 +1691,18 @@
       }
 
       /* ─── Hamburger icon colour ─── */
-      .navbar-scrolled .nav-trigger .trigger-icon svg path { stroke: #1a1a1a; }
-      .navbar-scrolled .nav-trigger.is-active .trigger-icon svg path { stroke: #fff; }
+      .navbar-scrolled .nav-trigger .burger-svg path { stroke: #1a1a1a !important; }
+      .navbar-scrolled .nav-trigger.is-active .burger-svg path { stroke: #fff !important; }
 
       /* ─── Hamburger → X when active ─── */
-      .nav-trigger.is-active .trigger-icon svg { opacity: 0; }
-      .nav-trigger .trigger-icon { position: relative; display: flex; align-items: center; justify-content: center; }
-      .nav-trigger.is-active .trigger-icon::after {
-        content: '✕';
-        position: absolute; font-size: 24px; line-height: 1; color: #fff; font-weight: 300;
+      .nav-trigger .trigger-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+      .nav-x-icon {
+        display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        font-size: 22px; line-height: 1; color: #fff; font-weight: 400;
       }
+      .burger-svg { transition: opacity 0.2s ease; }
+      .nav-trigger.is-active .burger-svg { opacity: 0; }
+      .nav-trigger.is-active .nav-x-icon { display: block; }
     }
 
     /* =====================================================
@@ -1735,8 +1770,13 @@
       /* Before / After images: 2-col grid */
       .after-before-image-list { grid-template-columns: 1fr 1fr !important; }
 
-      /* Benefits: hide decorative image */
-      .benefits-right-image    { display: none !important; }
+      /* Benefits: hide secondary column, main image full width */
+      .benefits-right-image,
+      .benefits-right-image.v2 { display: none !important; }
+      .benefits-image-wrapper,
+      .benefits-image-wrapper.v1 { flex-direction: column !important; }
+      .benefits-image-03, .benefits-image-03.v1 { width: 100% !important; }
+      .benefits-image.v1 { width: 100% !important; height: auto !important; }
 
       /* FAQ: stack left/right */
       .faq-layout { flex-direction: column !important; gap: 40px !important; }
@@ -2021,19 +2061,22 @@
       opacity: 0, y: 24, duration: 0.65, ease: 'power2.out',
       scrollTrigger: st('.benefits-section', 'top 68%')
     });
-    /* wipe on each benefit image separately for staggered effect */
-    gsap.from('.benefits-image-03', {
-      opacity: 0, scale: 0.9, duration: 1.1, ease: 'power3.out',
-      scrollTrigger: { trigger: '.benefits-section', start: 'top 78%', once: true }
-    });
-    gsap.from('.benefits-image-01', {
-      opacity: 0, x: 40, duration: 0.9, ease: 'power2.out', delay: 0.15,
-      scrollTrigger: { trigger: '.benefits-section', start: 'top 72%', once: true }
-    });
-    gsap.from('.benefits-image-02', {
-      opacity: 0, x: 40, duration: 0.9, ease: 'power2.out', delay: 0.3,
-      scrollTrigger: { trigger: '.benefits-section', start: 'top 68%', once: true }
-    });
+    /* Benefit images — fromTo so Webflow CSS overrides don't break "to" state */
+    gsap.fromTo('.benefits-image-03',
+      { opacity: 0, scale: 0.88 },
+      { opacity: 1, scale: 1, duration: 1.1, ease: 'power3.out',
+        scrollTrigger: { trigger: '.benefits-section', start: 'top 78%', once: true } }
+    );
+    gsap.fromTo('.benefits-image-01',
+      { opacity: 0, x: 40 },
+      { opacity: 1, x: 0, duration: 0.9, ease: 'power2.out', delay: 0.15,
+        scrollTrigger: { trigger: '.benefits-section', start: 'top 72%', once: true } }
+    );
+    gsap.fromTo('.benefits-image-02',
+      { opacity: 0, x: 40 },
+      { opacity: 1, x: 0, duration: 0.9, ease: 'power2.out', delay: 0.3,
+        scrollTrigger: { trigger: '.benefits-section', start: 'top 68%', once: true } }
+    );
 
     /* ======================================================
        FAQ
@@ -2092,7 +2135,7 @@
     });
 
     /* ======================================================
-       MOBILE NAV — smooth open/close with GSAP
+       MOBILE NAV — smooth open/close, iOS-safe scroll lock
     ====================================================== */
     (function () {
       var trigger = document.querySelector('.nav-trigger');
@@ -2101,25 +2144,71 @@
 
       var isOpen = false;
 
+      /* Prevent inner scroll from leaking to page on touch */
+      menu.addEventListener('touchmove', function (e) { e.stopPropagation(); }, { passive: true });
+
       trigger.addEventListener('click', function () {
         isOpen = !isOpen;
         trigger.classList.toggle('is-active', isOpen);
         trigger.setAttribute('aria-expanded', isOpen);
-        document.body.style.overflow = isOpen ? 'hidden' : '';
 
         if (isOpen) {
+          _lockScroll();
           menu.classList.add('mobile-open');
-          /* Animate nav links in with stagger */
-          var links = menu.querySelectorAll('.single-nav, .menu-wrapper .primary-button');
-          gsap.from(links, {
-            opacity: 0, y: 18, stagger: 0.06, duration: 0.35, ease: 'power2.out',
-            delay: 0.18, clearProps: 'all'
-          });
+          /* Stagger links in after CSS transition starts (0.12s delay) */
+          var links = menu.querySelectorAll('.single-nav');
+          gsap.fromTo(links,
+            { opacity: 0, y: 22 },
+            { opacity: 1, y: 0, stagger: 0.07, duration: 0.38, ease: 'power2.out', delay: 0.15 }
+          );
+          var btn = menu.querySelector('.primary-button');
+          if (btn) gsap.fromTo(btn,
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.38, ease: 'power2.out', delay: 0.52 }
+          );
         } else {
           menu.classList.remove('mobile-open');
+          _unlockScroll();
         }
       });
     }());
+
+    /* ======================================================
+       MAGNETIC BUTTONS — desktop only
+    ====================================================== */
+    if (!isMobile) {
+      document.querySelectorAll('.primary-button, .border-button').forEach(function (btn) {
+        btn.addEventListener('mousemove', function (e) {
+          var r = btn.getBoundingClientRect();
+          var x = (e.clientX - r.left - r.width  / 2) * 0.22;
+          var y = (e.clientY - r.top  - r.height / 2) * 0.22;
+          gsap.to(btn, { x: x, y: y, duration: 0.35, ease: 'power2.out', overwrite: true });
+        });
+        btn.addEventListener('mouseleave', function () {
+          gsap.to(btn, { x: 0, y: 0, duration: 0.55, ease: 'elastic.out(1,0.5)', overwrite: true });
+        });
+      });
+    }
+
+    /* ======================================================
+       CUSTOM CURSOR GLOW — desktop only
+    ====================================================== */
+    if (!isMobile && !('ontouchstart' in window)) {
+      var glow = document.createElement('div');
+      glow.style.cssText = [
+        'position:fixed', 'width:340px', 'height:340px',
+        'border-radius:50%', 'pointer-events:none', 'z-index:0',
+        'background:radial-gradient(circle,rgba(255,108,31,0.07) 0%,transparent 70%)',
+        'transform:translate(-50%,-50%)', 'transition:opacity 0.4s ease',
+        'will-change:transform'
+      ].join(';');
+      document.body.appendChild(glow);
+      document.addEventListener('mousemove', function (e) {
+        gsap.to(glow, { x: e.clientX, y: e.clientY, duration: 0.6, ease: 'power2.out', overwrite: true });
+      });
+      document.addEventListener('mouseleave', function () { glow.style.opacity = '0'; });
+      document.addEventListener('mouseenter', function () { glow.style.opacity = '1'; });
+    }
 
 
     /* ======================================================
