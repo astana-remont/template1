@@ -107,6 +107,33 @@
 
     /* ── Service card line grows to full width on hover (reinforcement) ── */
     .service-card-title-wrap:hover .service-card-line { width: 100% !important; }
+
+    /* ── Benefits: secondary images visible (Webflow .v2 variant may hide them) ── */
+    .benefits-right-image { display: flex !important; flex-direction: column; gap: 10px; }
+
+    /* ── FAQ: two-column layout ── */
+    .faq-layout {
+      display: flex; flex-direction: row; gap: 64px; align-items: flex-start;
+    }
+    .faq-left-content { flex: 1; min-width: 0; }
+    .faq-right-image-wrapper {
+      flex: 0 0 380px; border-radius: 20px; overflow: hidden; position: sticky; top: 100px;
+    }
+    .faq-right-image-wrapper img { width: 100%; display: block; object-fit: cover; }
+
+    /* ── FAQ question text ── */
+    .faq-question { flex: 1; font-size: 17px; font-weight: 500; color: #1a1a1a; }
+    .dropdown-toggle-2 {
+      display: flex !important; align-items: center; justify-content: space-between;
+      padding: 20px 0; cursor: pointer;
+      border-bottom: 1px solid rgba(0,0,0,0.09); gap: 16px;
+    }
+    .dropdown-toggle-2:first-child { border-top: 1px solid rgba(0,0,0,0.09); }
+    .faq-icon img { width: 24px; height: 24px; flex-shrink: 0; }
+    .faq-main-answer { color: #555; line-height: 1.6; padding: 4px 0 16px; }
+
+    /* ── Hamburger SVG smooth opacity transition ── */
+    .nav-trigger .trigger-icon svg { transition: opacity 0.2s ease; }
   </style>
 </head>
 
@@ -1160,16 +1187,18 @@
   <!-- ===== FAQ SECTION ===== -->
   <section class="faq-section">
     <div class="w-layout-blockcontainer container main w-container">
-      <div class="testimonials-content-wrapper">
+      <div class="faq-layout">
 
-        <div class="all-section-title-wrapper _w-400">
-          <div class="section-tag">
-            <div class="tag-bullet-wrap w-variant-129fefa2-0313-da77-618d-1364d1548fb5"><div class="tag-bullet"></div></div>
-            <p class="tag-text">FAQ</p>
+        <!-- Left: title + accordion -->
+        <div class="faq-left-content">
+          <div class="all-section-title-wrapper _w-400">
+            <div class="section-tag">
+              <div class="tag-bullet-wrap w-variant-129fefa2-0313-da77-618d-1364d1548fb5"><div class="tag-bullet"></div></div>
+              <p class="tag-text">FAQ</p>
+            </div>
+            <h2 class="all-section-title">What to Know Before You Start</h2>
+            <p class="after-before-pg _w-359">Welcome to our Home Upgrade Journal, where we share simple tips and reliable advice.</p>
           </div>
-          <h2 class="all-section-title">What to Know Before You Start</h2>
-          <p class="after-before-pg _w-359">Welcome to our Home Upgrade Journal, where we share simple tips and reliable advice.</p>
-        </div>
 
         <div class="faq-wrapper">
           <div class="faq">
@@ -1256,8 +1285,19 @@
 
           </div><!-- /faq -->
         </div><!-- /faq-wrapper -->
+        </div><!-- /faq-left-content -->
 
-      </div>
+        <!-- Right: sticky renovation image -->
+        <div class="faq-right-image-wrapper">
+          <img src="https://cdn.prod.website-files.com/6991425a2a8c58155558bcbd/699538be1b21ae07a158ba27_Main%20Image.png"
+               loading="lazy"
+               sizes="(max-width: 767px) 100vw, 380px"
+               alt="Home Renovation"
+               style="min-height:520px;">
+          <div class="faq-image-overlay" style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 60%,rgba(0,0,0,0.35) 100%);border-radius:20px;"></div>
+        </div>
+
+      </div><!-- /faq-layout -->
     </div>
 
     <div class="line-wrap">
@@ -1530,17 +1570,19 @@
       });
     });
 
-    // Mobile nav toggle
-    var navTrigger = document.querySelector('.nav-trigger');
-    var navMenu = document.querySelector('.menu-wrapper');
-    if (navTrigger && navMenu) {
-      navTrigger.addEventListener('click', function() {
-        var isOpen = navMenu.classList.contains('mobile-open');
-        navMenu.classList.toggle('mobile-open', !isOpen);
-        this.classList.toggle('is-active', !isOpen);
-        this.setAttribute('aria-expanded', !isOpen);
-        document.body.style.overflow = isOpen ? '' : 'hidden';
-      });
+    /* Mobile nav is handled in the GSAP block below for smooth animation.
+       Fallback for when GSAP is not available: */
+    if (typeof gsap === 'undefined') {
+      var _nt = document.querySelector('.nav-trigger');
+      var _nm = document.querySelector('.menu-wrapper');
+      if (_nt && _nm) {
+        _nt.addEventListener('click', function() {
+          var open = _nm.classList.toggle('mobile-open');
+          _nt.classList.toggle('is-active', open);
+          _nt.setAttribute('aria-expanded', open);
+          document.body.style.overflow = open ? 'hidden' : '';
+        });
+      }
     }
   </script>
 
@@ -1559,65 +1601,64 @@
       .line      { display: none !important; }
       .line-wrap { display: none !important; }
 
-      /* Hide desktop menu, show hamburger */
-      .menu-wrapper { display: none !important; }
-      .nav-trigger  { display: flex !important; align-items: center; justify-content: center; }
+      /* Show hamburger */
+      .nav-trigger { display: flex !important; align-items: center; justify-content: center; }
 
-      /* Keep the navbar bar above the full-screen overlay */
+      /* Keep navbar bar above overlay */
       .container-wrapper { position: relative; z-index: 10001; }
 
-      /* ─── Full-screen drawer ─── */
-      .menu-wrapper.mobile-open {
+      /* ─── Full-screen drawer: always positioned, hidden via opacity/visibility ─── */
+      .menu-wrapper {
         display: flex !important;
         flex-direction: column;
-        position: fixed;
-        inset: 0;
-        background: #161616;
-        z-index: 10000;
-        padding: 100px 28px 48px;
-        overflow-y: auto;
+        position: fixed !important;
+        inset: 0 !important;
+        background: #161616 !important;
+        z-index: 10000 !important;
+        padding: 100px 28px 48px !important;
+        overflow-y: auto !important;
+
+        /* Hidden state — smooth transition */
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateY(-12px) !important;
+        transition: opacity 0.32s ease, transform 0.32s ease, visibility 0s linear 0.32s !important;
       }
-      .menu-wrapper.mobile-open .menu-content-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        flex: 1;
-        gap: 0;
+
+      /* Open state */
+      .menu-wrapper.mobile-open {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translateY(0) !important;
+        transition: opacity 0.32s ease, transform 0.32s ease, visibility 0s linear 0s !important;
       }
-      .menu-wrapper.mobile-open .menu-item-wrapper { width: 100%; }
-      .menu-wrapper.mobile-open .menu-items {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        gap: 0;
+
+      /* Menu layout */
+      .menu-wrapper .menu-content-wrapper {
+        display: flex; flex-direction: column; align-items: flex-start; flex: 1; gap: 0;
       }
-      /* Hide the dropdown panel inside the overlay */
-      .menu-wrapper.mobile-open .all-pages { display: none; }
-      .menu-wrapper.mobile-open .single-nav {
+      .menu-wrapper .menu-item-wrapper { width: 100%; }
+      .menu-wrapper .menu-items { display: flex; flex-direction: column; width: 100%; gap: 0; }
+
+      /* Hide dropdown, show direct links */
+      .menu-wrapper .all-pages { display: none !important; }
+      .menu-wrapper .single-nav {
         display: block !important;
-        font-size: 22px;
-        font-weight: 500;
+        font-size: 22px; font-weight: 500;
         color: #fff !important;
         padding: 15px 0;
         border-bottom: 1px solid rgba(255,255,255,0.07);
         text-decoration: none;
       }
-      .menu-wrapper.mobile-open .nav-button-wrapper {
-        margin-top: 36px;
-        width: 100%;
-      }
-      .menu-wrapper.mobile-open .primary-button {
-        display: flex !important;
-        justify-content: center;
-        width: 100%;
-        text-align: center;
+      .menu-wrapper .nav-button-wrapper { margin-top: 36px; width: 100%; }
+      .menu-wrapper .primary-button {
+        display: flex !important; justify-content: center; width: 100%; text-align: center;
       }
 
       /* ─── Hamburger icon colour ─── */
-      /* White by default (hero is dark) — already set by the SVG attribute */
-      /* Dark when navbar is scrolled to white background */
       .navbar-scrolled .nav-trigger .trigger-icon svg path { stroke: #1a1a1a; }
-      /* …but stay white when the overlay is open */
       .navbar-scrolled .nav-trigger.is-active .trigger-icon svg path { stroke: #fff; }
 
       /* ─── Hamburger → X when active ─── */
@@ -1625,10 +1666,7 @@
       .nav-trigger .trigger-icon { position: relative; display: flex; align-items: center; justify-content: center; }
       .nav-trigger.is-active .trigger-icon::after {
         content: '✕';
-        position: absolute;
-        font-size: 22px;
-        line-height: 1;
-        color: #fff;
+        position: absolute; font-size: 24px; line-height: 1; color: #fff; font-weight: 300;
       }
     }
 
@@ -1659,6 +1697,10 @@
       .benefits-content-wrapper   { flex-direction: column !important; }
       .benefits-befote-left-content,
       .benefits-image-wrapper     { width: 100% !important; }
+
+      /* FAQ */
+      .faq-layout { flex-direction: column !important; gap: 40px !important; }
+      .faq-right-image-wrapper { flex: none !important; width: 100% !important; position: relative !important; top: auto !important; }
 
       /* Blog */
       .blog-content-wrapper       { flex-direction: column !important; }
@@ -1697,7 +1739,9 @@
       .benefits-right-image    { display: none !important; }
 
       /* FAQ: stack left/right */
-      .testimonials-content-wrapper { flex-direction: column !important; }
+      .faq-layout { flex-direction: column !important; gap: 40px !important; }
+      .faq-right-image-wrapper { flex: none !important; width: 100% !important; position: relative !important; top: auto !important; }
+      .faq-right-image-wrapper img { min-height: 260px !important; }
       ._w-400 { max-width: 100% !important; width: 100% !important; }
 
       /* Blog: single column */
@@ -1776,24 +1820,34 @@
 
     /* ======================================================
        HERO — entrance on page load
+       NOTE: CSS sets opacity:0 on hero elements (FOUC prevention).
+       gsap.from() reads CSS opacity:0 as "to" value → animates 0→0.
+       FIX: use gsap.set()/gsap.fromTo() with explicit "to" opacity:1
     ====================================================== */
     var heroTitle = document.querySelector('.hero-title-text');
     if (heroTitle) {
       if (!reduced) {
+        /* Make container visible so child spans can be seen after SplitText */
+        gsap.set(heroTitle, { opacity: 1 });
         var ts = new SplitText(heroTitle, { type: 'words' });
         gsap.from(ts.words, {
           opacity: 0, y: 90, duration: 0.9, stagger: 0.09, ease: 'power4.out', delay: 0.15,
           onComplete: function () { ts.revert(); }
         });
       } else {
-        gsap.from(heroTitle, { opacity: 0, y: 30, duration: 0.7, delay: 0.15 });
+        gsap.fromTo(heroTitle, { opacity: 0 }, { opacity: 1, duration: 0.7, delay: 0.15 });
       }
     }
 
-    gsap.from('.hero-pg',                            { opacity: 0, y: 26, duration: 0.75, ease: 'power2.out', delay: 0.65 });
-    gsap.from('.hero-top-content > .primary-button', { opacity: 0, y: 20, duration: 0.7,  ease: 'power2.out', delay: 0.85 });
-    gsap.from('.hero-rating-area',                   { opacity: 0, y: 16, duration: 0.65, ease: 'power2.out', delay: 1.05 });
-    gsap.from('.hero-image-wrapper',                 { opacity: 0, scale: 1.06, duration: 1.6, ease: 'power2.out', delay: 0.08 });
+    /* Use fromTo so "to" is explicit (CSS opacity:0 would make from→to both 0) */
+    gsap.fromTo('.hero-pg',
+      { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.75, ease: 'power2.out', delay: 0.65 });
+    gsap.fromTo('.hero-top-content > .primary-button',
+      { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out', delay: 0.85 });
+    gsap.fromTo('.hero-rating-area',
+      { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.65, ease: 'power2.out', delay: 1.05 });
+    gsap.fromTo('.hero-image-wrapper',
+      { opacity: 0, scale: 1.06 }, { opacity: 1, scale: 1, duration: 1.6, ease: 'power2.out', delay: 0.08 });
 
     /* Hero image parallax — desktop only */
     if (!isMobile) {
@@ -1942,16 +1996,14 @@
     });
 
     /* ======================================================
-       TESTIMONIALS — ScrollTrigger.batch for per-card entry
+       TESTIMONIALS — per-card triggers (more reliable than batch
+       when cards stack vertically on mobile)
     ====================================================== */
-    ScrollTrigger.batch('.testimonials-card', {
-      onEnter: function (els) {
-        gsap.from(els, {
-          opacity: 0, y: 46, scale: 0.93,
-          stagger: { each: 0.13 }, duration: 0.8, ease: 'power2.out'
-        });
-      },
-      start: 'top 85%', once: true
+    document.querySelectorAll('.testimonials-card').forEach(function (card) {
+      gsap.from(card, {
+        opacity: 0, y: 46, scale: 0.93, duration: 0.8, ease: 'power2.out',
+        scrollTrigger: { trigger: card, start: 'top 90%', once: true }
+      });
     });
 
     /* ======================================================
@@ -1961,8 +2013,27 @@
       opacity: 0, x: -60, duration: 0.9, ease: 'power2.out',
       scrollTrigger: st('.benefits-section', 'top 78%')
     });
-    /* wipe on the whole image wrapper (contains all benefit images) */
-    wipeIn('.benefits-image-wrapper', 'left');
+    gsap.from('.benefits-features', {
+      opacity: 0, x: -30, stagger: 0.12, duration: 0.65, ease: 'power2.out',
+      scrollTrigger: st('.benefits-section', 'top 72%')
+    });
+    gsap.from('.benefits-call-wrap', {
+      opacity: 0, y: 24, duration: 0.65, ease: 'power2.out',
+      scrollTrigger: st('.benefits-section', 'top 68%')
+    });
+    /* wipe on each benefit image separately for staggered effect */
+    gsap.from('.benefits-image-03', {
+      opacity: 0, scale: 0.9, duration: 1.1, ease: 'power3.out',
+      scrollTrigger: { trigger: '.benefits-section', start: 'top 78%', once: true }
+    });
+    gsap.from('.benefits-image-01', {
+      opacity: 0, x: 40, duration: 0.9, ease: 'power2.out', delay: 0.15,
+      scrollTrigger: { trigger: '.benefits-section', start: 'top 72%', once: true }
+    });
+    gsap.from('.benefits-image-02', {
+      opacity: 0, x: 40, duration: 0.9, ease: 'power2.out', delay: 0.3,
+      scrollTrigger: { trigger: '.benefits-section', start: 'top 68%', once: true }
+    });
 
     /* ======================================================
        FAQ
@@ -1971,9 +2042,15 @@
       opacity: 0, y: 32, duration: 0.75, ease: 'power2.out',
       scrollTrigger: st('.faq-section', 'top 80%')
     });
-    gsap.from('.faq-item', {
-      opacity: 0, y: 32, stagger: 0.08, duration: 0.65, ease: 'power2.out',
-      scrollTrigger: st('.faq-section', 'top 75%')
+    document.querySelectorAll('.faq-item').forEach(function (item) {
+      gsap.from(item, {
+        opacity: 0, y: 28, duration: 0.6, ease: 'power2.out',
+        scrollTrigger: { trigger: item, start: 'top 88%', once: true }
+      });
+    });
+    gsap.from('.faq-right-image-wrapper', {
+      opacity: 0, x: 55, scale: 0.96, duration: 1.1, ease: 'power3.out',
+      scrollTrigger: st('.faq-section', 'top 78%')
     });
 
     /* ======================================================
@@ -1983,35 +2060,67 @@
       opacity: 0, x: -55, duration: 0.9, ease: 'power2.out',
       scrollTrigger: st('.blog-section', 'top 78%')
     });
-    ScrollTrigger.batch('.blog-collection .collection-item', {
-      onEnter: function (els) {
-        gsap.from(els, {
-          opacity: 0, y: 55, scale: 0.94,
-          stagger: { each: 0.16 }, duration: 0.85, ease: 'power2.out'
-        });
-      },
-      start: 'top 85%', once: true
+    document.querySelectorAll('.blog-collection .collection-item').forEach(function (item) {
+      gsap.from(item, {
+        opacity: 0, y: 55, scale: 0.94, duration: 0.85, ease: 'power2.out',
+        scrollTrigger: { trigger: item, start: 'top 90%', once: true }
+      });
     });
 
     /* ======================================================
        FOOTER
     ====================================================== */
     gsap.from('.footer-cta', {
-      opacity: 0, scale: 0.92, duration: 0.9, ease: 'power2.out',
-      scrollTrigger: st('.footer-section', 'top 90%')
+      opacity: 0, scale: 0.94, duration: 0.9, ease: 'power3.out',
+      scrollTrigger: st('.footer-section', 'top 92%')
     });
-    gsap.from('.footer-left-content', {
-      opacity: 0, x: -45, duration: 0.85, ease: 'power2.out',
-      scrollTrigger: st('.footer-top-content', 'top 82%')
+    gsap.from('.footer-title', {
+      opacity: 0, y: 30, duration: 0.8, ease: 'power2.out',
+      scrollTrigger: st('.footer-left-content', 'top 85%')
     });
-    gsap.from('.footer-right-content', {
-      opacity: 0, x: 45, duration: 0.85, ease: 'power2.out',
-      scrollTrigger: st('.footer-top-content', 'top 82%')
+    gsap.from('.award-image-wrapper .award-image, .award-image-wrapper .award-image-03', {
+      opacity: 0, scale: 0.7, stagger: 0.1, duration: 0.55, ease: 'back.out(2)',
+      scrollTrigger: st('.footer-left-content', 'top 80%')
+    });
+    gsap.from('.footer-menu-list-wrapper', {
+      opacity: 0, y: 28, stagger: 0.12, duration: 0.7, ease: 'power2.out',
+      scrollTrigger: st('.footer-right-content', 'top 85%')
     });
     gsap.from('.copyright-area', {
-      opacity: 0, y: 20, duration: 0.6, ease: 'power2.out',
-      scrollTrigger: st('.copyright-area', 'top 92%')
+      opacity: 0, y: 16, duration: 0.55, ease: 'power2.out',
+      scrollTrigger: st('.copyright-area', 'top 95%')
     });
+
+    /* ======================================================
+       MOBILE NAV — smooth open/close with GSAP
+    ====================================================== */
+    (function () {
+      var trigger = document.querySelector('.nav-trigger');
+      var menu    = document.querySelector('.menu-wrapper');
+      if (!trigger || !menu) return;
+
+      var isOpen = false;
+
+      trigger.addEventListener('click', function () {
+        isOpen = !isOpen;
+        trigger.classList.toggle('is-active', isOpen);
+        trigger.setAttribute('aria-expanded', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+
+        if (isOpen) {
+          menu.classList.add('mobile-open');
+          /* Animate nav links in with stagger */
+          var links = menu.querySelectorAll('.single-nav, .menu-wrapper .primary-button');
+          gsap.from(links, {
+            opacity: 0, y: 18, stagger: 0.06, duration: 0.35, ease: 'power2.out',
+            delay: 0.18, clearProps: 'all'
+          });
+        } else {
+          menu.classList.remove('mobile-open');
+        }
+      });
+    }());
+
 
     /* ======================================================
        NAVBAR SCROLL
